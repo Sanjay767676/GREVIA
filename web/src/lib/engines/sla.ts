@@ -11,30 +11,39 @@ import {
 } from '../constants';
 import { getServerEnv } from '../env';
 
-// Resolve SLA minutes for a priority. Demo mode short-circuits DB lookup.
+// The workflow has two SLA stages set by the Principal:
+//  - 'worker': time the assigned worker has before it escalates to the HOD
+//  - 'hod':    time the HOD has before it escalates to the Principal
+export type SlaStage = 'worker' | 'hod';
+
+// Resolve SLA minutes for a priority + stage. Demo mode short-circuits DB.
 export async function getSlaMinutes(
   supabase: SupabaseClient,
   priority: Priority,
+  stage: SlaStage = 'worker',
 ): Promise<number> {
   if (getServerEnv().demoMode) {
+    // Demo: worker window = base, hod window = base (both short).
     return DEMO_SLA_MINUTES[priority];
   }
   const { data } = await supabase
     .from('sla_config')
-    .select('minutes')
+    .select('worker_minutes, hod_minutes')
     .eq('priority', priority)
     .maybeSingle();
 
-  return data?.minutes ?? DEFAULT_SLA_MINUTES[priority];
+  if (!data) return DEFAULT_SLA_MINUTES[priority];
+  return stage === 'hod' ? data.hod_minutes : data.worker_minutes;
 }
 
-// Compute SLA start + deadline for a newly assigned complaint.
+// Compute SLA start + deadline for a complaint at a given stage.
 export async function computeSlaWindow(
   supabase: SupabaseClient,
   priority: Priority,
+  stage: SlaStage = 'worker',
   startAt: Date = new Date(),
 ): Promise<{ start: string; deadline: string; minutes: number }> {
-  const minutes = await getSlaMinutes(supabase, priority);
+  const minutes = await getSlaMinutes(supabase, priority, stage);
   const deadline = new Date(startAt.getTime() + minutes * 60_000);
   return {
     start: startAt.toISOString(),

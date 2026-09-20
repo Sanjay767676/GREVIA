@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { db } from '@/lib/db';
 import { requireRole } from '@/lib/auth';
 import { ROLES } from '@/lib/constants';
 import { computeStats } from '@/lib/stats';
@@ -9,12 +9,11 @@ import { BarList } from '@/components/BarList';
 import type { Complaint } from '@/lib/types';
 
 export default async function HodDashboard() {
-  await requireRole([ROLES.HOD]);
-  const supabase = createClient();
-  // RLS restricts HOD to their own department automatically.
-  const { data } = await supabase
+  const user = await requireRole([ROLES.HOD]);
+  const { data } = await db()
     .from('complaints')
     .select('*')
+    .eq('department_id', user.department_id ?? '')
     .order('created_at', { ascending: false });
   const complaints = (data ?? []) as Complaint[];
 

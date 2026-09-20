@@ -2,15 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Profile } from '@/lib/types';
 
-// HOD oversight actions: reassign to a technician, or escalate to principal.
 export function HodActions({
   complaintId,
   technicians,
 }: {
   complaintId: string;
-  technicians: Pick<Profile, 'id' | 'full_name' | 'email'>[];
+  technicians: { id: string; full_name: string; username: string }[];
 }) {
   const router = useRouter();
   const [staffId, setStaffId] = useState('');
@@ -19,7 +17,7 @@ export function HodActions({
 
   async function reassign() {
     if (!staffId) {
-      setError('Select a technician first.');
+      setError('Select a worker first.');
       return;
     }
     setLoading('reassign');
@@ -59,16 +57,13 @@ export function HodActions({
     <div className="space-y-4">
       <h2 className="text-sm font-semibold text-slate-700">HOD actions</h2>
       {error && <p className="text-sm text-red-600">{error}</p>}
-
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-52 flex-1">
-          <label className="label">Reassign to technician</label>
+          <label className="label">Reassign to worker</label>
           <select className="input" value={staffId} onChange={(e) => setStaffId(e.target.value)}>
-            <option value="">— Select technician —</option>
+            <option value="">— Select worker —</option>
             {technicians.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.full_name || t.email}
-              </option>
+              <option key={t.id} value={t.id}>{t.full_name || t.username}</option>
             ))}
           </select>
         </div>
@@ -76,7 +71,6 @@ export function HodActions({
           {loading === 'reassign' ? 'Reassigning…' : 'Reassign'}
         </button>
       </div>
-
       <div>
         <button onClick={escalate} disabled={loading !== null} className="btn-danger">
           {loading === 'escalate' ? 'Escalating…' : 'Escalate to Principal'}

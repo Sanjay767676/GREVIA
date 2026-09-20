@@ -1,12 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
+import { db } from '@/lib/db';
 import { requireRole } from '@/lib/auth';
 import { ROLES } from '@/lib/constants';
 import type { AuditLog } from '@/lib/types';
 
 export default async function AuditLogPage() {
   await requireRole([ROLES.PRINCIPAL, ROLES.SUPER_ADMIN]);
-  const supabase = createClient();
-  const { data } = await supabase
+  const { data } = await db()
     .from('audit_logs')
     .select('*')
     .order('created_at', { ascending: false })
@@ -28,23 +27,15 @@ export default async function AuditLogPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {logs.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-slate-400">
-                    No audit events yet.
-                  </td>
-                </tr>
+                <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-400">No audit events yet.</td></tr>
               ) : (
                 logs.map((l) => (
                   <tr key={l.id}>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
                       {new Date(l.created_at).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-700">
-                      {l.action.replaceAll('_', ' ')}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {l.metadata ? JSON.stringify(l.metadata) : '—'}
-                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-700">{l.action.replaceAll('_', ' ')}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{l.metadata ? JSON.stringify(l.metadata) : '—'}</td>
                   </tr>
                 ))
               )}

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from './supabase/server';
+import { getSession, type SessionPayload } from './session';
 import type { Role } from './constants';
-import type { Profile } from './types';
 
 export class ApiError extends Error {
   status: number;
@@ -11,32 +10,19 @@ export class ApiError extends Error {
   }
 }
 
-// Resolve the authenticated caller's profile inside a route handler.
-// Throws ApiError(401) if unauthenticated.
-export async function getApiProfile(): Promise<Profile> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+// Resolve the authenticated caller from the session cookie. Throws 401 if absent.
+export async function requireApiUser(): Promise<SessionPayload> {
+  const user = await getSession();
   if (!user) throw new ApiError(401, 'Not authenticated');
-
-  const { data } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  if (!data) throw new ApiError(401, 'Profile not found');
-  return data as Profile;
+  return user;
 }
 
-export function requireApiRole(profile: Profile, allowed: Role[]): void {
-  if (!allowed.includes(profile.role)) {
+export function requireApiRole(user: SessionPayload, allowed: Role[]): void {
+  if (!allowed.includes(user.role)) {
     throw new ApiError(403, 'Insufficient permissions');
   }
 }
 
-// Convert thrown errors into a JSON response. Wrap handler bodies with this.
 export function errorResponse(err: unknown): NextResponse {
   if (err instanceof ApiError) {
     return NextResponse.json({ error: err.message }, { status: err.status });

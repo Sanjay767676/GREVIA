@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { Profile } from '@/lib/types';
+import type { SessionPayload } from '@/lib/session';
 import { NotificationBell } from './NotificationBell';
 import { SignOutButton } from './SignOutButton';
 import { Logo } from './Logo';
@@ -10,17 +10,18 @@ export interface NavItem {
 }
 
 export function PortalShell({
-  profile,
+  user,
   portalName,
   nav,
   children,
 }: {
-  profile: Profile;
+  user: SessionPayload;
   portalName: string;
   nav: NavItem[];
   children: React.ReactNode;
 }) {
-  const initials = (profile.full_name || profile.email)
+  const displayName = user.full_name || user.username;
+  const initials = displayName
     .split(' ')
     .map((s) => s[0])
     .slice(0, 2)
@@ -54,11 +55,9 @@ export function PortalShell({
             <NotificationBell />
             <div className="hidden items-center gap-2.5 sm:flex">
               <div className="text-right">
-                <p className="text-sm font-semibold text-slate-800">
-                  {profile.full_name || profile.email}
-                </p>
+                <p className="text-sm font-semibold text-slate-800">{displayName}</p>
                 <p className="text-[11px] font-medium text-slate-500">
-                  {profile.role.replaceAll('_', ' ')}
+                  {user.role.replaceAll('_', ' ')}
                 </p>
               </div>
               <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white">

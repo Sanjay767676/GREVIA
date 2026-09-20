@@ -4,19 +4,11 @@ import { loadComplaintDetail } from '@/lib/complaint-detail';
 import { ComplaintDetail } from '@/components/ComplaintDetail';
 import { VerifyActions } from './VerifyActions';
 
-export default async function UserComplaintDetail({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const profile = await requireRole([ROLES.STUDENT, ROLES.FACULTY]);
-  const { complaint, history, imageUrl, proofUrl } = await loadComplaintDetail(
-    params.id,
-  );
+export default async function UserComplaintDetail({ params }: { params: { id: string } }) {
+  const user = await requireRole([ROLES.STUDENT, ROLES.FACULTY]);
+  const { complaint, history, imageUrl, proofUrl } = await loadComplaintDetail(params.id, user);
 
-  const canVerify =
-    complaint.created_by === profile.id &&
-    complaint.status === STATUS.USER_VERIFICATION;
+  const canVerify = complaint.created_by === user.sub && complaint.status === STATUS.USER_VERIFICATION;
 
   return (
     <ComplaintDetail

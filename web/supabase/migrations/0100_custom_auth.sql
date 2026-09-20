@@ -1,11 +1,24 @@
 -- ===========================================================================
--- Grievia — Core schema
--- Run order: 0001_schema.sql -> 0002_rls.sql -> 0003_seed.sql
+-- Grievia — Custom auth rebuild (Principal-provisioned username/password).
+-- This REPLACES the Supabase-Auth-based schema with a self-contained model.
+-- Safe to run on the existing project: it drops the old app tables and
+-- recreates everything keyed to app_users (no dependency on auth.users).
 -- ===========================================================================
 
 create extension if not exists "pgcrypto";
 
--- --- Enums -----------------------------------------------------------------
+-- Drop old tables (order matters due to FKs). CASCADE cleans dependents.
+drop table if exists audit_logs cascade;
+drop table if exists notifications cascade;
+drop table if exists complaint_history cascade;
+drop table if exists complaints cascade;
+drop table if exists category_staff_map cascade;
+drop table if exists sla_config cascade;
+drop table if exists profiles cascade;
+-- departments is reused but recreated for a clean hod_id FK.
+drop table if exists departments cascade;
+
+-- --- Enums (create if missing) ---------------------------------------------
 do $$ begin
   create type user_role as enum
     ('STUDENT','FACULTY','TECHNICIAN','HOD','PRINCIPAL','SUPER_ADMIN');
@@ -33,7 +46,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 -- --- Departments -----------------------------------------------------------
-create table if not exists departments (
+create table departments (
   id uuid primary key default gen_random_uuid(),
   code text unique not null,
   name text not null,
@@ -41,11 +54,12 @@ create table if not exists departments (
   created_at timestamptz not null default now()
 );
 
--- --- Profiles (1:1 with auth.users) ----------------------------------------
-create table if not exists profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
+-- --- App users (custom auth) -----------------------------------------------
+create table app_users (
+  id uuid primary key default gen_random_uuid(),
+  username text unique not null,
+  password_hash text not null,
   full_name text not null default '',
-  email text not null,
   role user_role not null default 'STUDENT',
   department_id uuid references departments(id) on delete set null,
   register_number text,
@@ -53,37 +67,37 @@ create table if not exists profiles (
 );
 
 alter table departments
-  drop constraint if exists departments_hod_fk;
-alter table departments
   add constraint departments_hod_fk
-  foreign key (hod_id) references profiles(id) on delete set null;
+  foreign key (hod_id) references app_users(id) on delete set null;
 
 -- --- SLA configuration -----------------------------------------------------
-create table if not exists sla_config (
+-- Two stages: WORKER window (before escalating to HOD) and HOD window
+-- (before escalating to Principal). Configurable by the Principal.
+create table sla_config (
   id uuid primary key default gen_random_uuid(),
   priority complaint_priority unique not null,
-  minutes integer not null check (minutes > 0)
+  worker_minutes integer not null check (worker_minutes > 0),
+  hod_minutes integer not null check (hod_minutes > 0)
 );
 
--- --- Category -> staff assignment map --------------------------------------
--- department_id NULL == applies to all departments (global fallback).
-create table if not exists category_staff_map (
+-- --- Category -> worker assignment map -------------------------------------
+create table category_staff_map (
   id uuid primary key default gen_random_uuid(),
   category complaint_category not null,
   department_id uuid references departments(id) on delete cascade,
-  staff_id uuid not null references profiles(id) on delete cascade,
+  staff_id uuid not null references app_users(id) on delete cascade,
   created_at timestamptz not null default now()
 );
-create unique index if not exists category_staff_map_uq
+create unique index category_staff_map_uq
   on category_staff_map (category, coalesce(department_id, '00000000-0000-0000-0000-000000000000'::uuid));
 
 -- --- Complaints ------------------------------------------------------------
 create sequence if not exists complaint_seq start 1000;
 
-create table if not exists complaints (
+create table complaints (
   id uuid primary key default gen_random_uuid(),
   code text unique not null default ('GRV-' || nextval('complaint_seq')::text),
-  created_by uuid not null references profiles(id) on delete cascade,
+  created_by uuid not null references app_users(id) on delete cascade,
   department_id uuid references departments(id) on delete set null,
   category complaint_category,
   priority complaint_priority,
@@ -95,7 +109,7 @@ create table if not exists complaints (
   classification_source classification_source,
   ai_confidence numeric(4,3),
   ai_summary text,
-  assigned_to uuid references profiles(id) on delete set null,
+  assigned_to uuid references app_users(id) on delete set null,
   sla_start_at timestamptz,
   sla_deadline_at timestamptz,
   escalation_level integer not null default 1,
@@ -107,48 +121,47 @@ create table if not exists complaints (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists complaints_created_by_idx on complaints (created_by);
-create index if not exists complaints_assigned_to_idx on complaints (assigned_to);
-create index if not exists complaints_department_idx on complaints (department_id);
-create index if not exists complaints_status_idx on complaints (status);
-create index if not exists complaints_deadline_idx on complaints (sla_deadline_at);
+create index complaints_created_by_idx on complaints (created_by);
+create index complaints_assigned_to_idx on complaints (assigned_to);
+create index complaints_department_idx on complaints (department_id);
+create index complaints_status_idx on complaints (status);
+create index complaints_deadline_idx on complaints (sla_deadline_at);
 
--- --- Complaint history (timeline) ------------------------------------------
-create table if not exists complaint_history (
+-- --- Complaint history -----------------------------------------------------
+create table complaint_history (
   id uuid primary key default gen_random_uuid(),
   complaint_id uuid not null references complaints(id) on delete cascade,
-  actor_id uuid references profiles(id) on delete set null,
+  actor_id uuid references app_users(id) on delete set null,
   action text not null,
   from_status complaint_status,
   to_status complaint_status,
   note text,
   created_at timestamptz not null default now()
 );
-create index if not exists complaint_history_complaint_idx
-  on complaint_history (complaint_id);
+create index complaint_history_complaint_idx on complaint_history (complaint_id);
 
 -- --- Notifications ---------------------------------------------------------
-create table if not exists notifications (
+create table notifications (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
+  user_id uuid not null references app_users(id) on delete cascade,
   complaint_id uuid references complaints(id) on delete cascade,
   title text not null,
   body text not null default '',
   read boolean not null default false,
   created_at timestamptz not null default now()
 );
-create index if not exists notifications_user_idx on notifications (user_id, read);
+create index notifications_user_idx on notifications (user_id, read);
 
--- --- Audit log (immutable) -------------------------------------------------
-create table if not exists audit_logs (
+-- --- Audit log -------------------------------------------------------------
+create table audit_logs (
   id uuid primary key default gen_random_uuid(),
   complaint_id uuid references complaints(id) on delete set null,
-  actor_id uuid references profiles(id) on delete set null,
+  actor_id uuid references app_users(id) on delete set null,
   action text not null,
   metadata jsonb,
   created_at timestamptz not null default now()
 );
-create index if not exists audit_logs_complaint_idx on audit_logs (complaint_id);
+create index audit_logs_complaint_idx on audit_logs (complaint_id);
 
 -- --- updated_at trigger ----------------------------------------------------
 create or replace function set_updated_at() returns trigger as $$
@@ -163,17 +176,9 @@ create trigger complaints_set_updated_at
   before update on complaints
   for each row execute function set_updated_at();
 
--- --- Auto-create profile on signup -----------------------------------------
-create or replace function handle_new_user() returns trigger as $$
-begin
-  insert into profiles (id, email, full_name)
-  values (new.id, coalesce(new.email, ''), coalesce(new.raw_user_meta_data->>'full_name', ''))
-  on conflict (id) do nothing;
-  return new;
-end;
-$$ language plpgsql security definer;
-
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function handle_new_user();
+-- ===========================================================================
+-- All access goes through the backend using the service role; RLS is left
+-- disabled on these tables because there is no Supabase Auth user context.
+-- Authorization is enforced in the application layer (session + role checks).
+-- The anon key is NOT used for data access.
+-- ===========================================================================

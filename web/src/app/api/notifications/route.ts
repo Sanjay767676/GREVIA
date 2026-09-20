@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ApiError, errorResponse, getApiProfile } from '@/lib/api-auth';
-import { createClient } from '@/lib/supabase/server';
+import { ApiError, errorResponse, requireApiUser } from '@/lib/api-auth';
+import { db } from '@/lib/db';
 
-// GET /api/notifications — current user's notifications (newest first).
 export async function GET() {
   try {
-    await getApiProfile();
-    const supabase = createClient();
-    const { data, error } = await supabase
+    const user = await requireApiUser();
+    const { data, error } = await db()
       .from('notifications')
       .select('*')
+      .eq('user_id', user.sub)
       .order('created_at', { ascending: false })
       .limit(50);
     if (error) throw new ApiError(500, error.message);
@@ -20,15 +19,11 @@ export async function GET() {
   }
 }
 
-// PATCH /api/notifications — mark all (or one) as read.
-// body: { id?: string }  (omit id to mark all)
 export async function PATCH(req: NextRequest) {
   try {
-    const profile = await getApiProfile();
-    const supabase = createClient();
+    const user = await requireApiUser();
     const body = await req.json().catch(() => ({}));
-
-    let query = supabase.from('notifications').update({ read: true }).eq('user_id', profile.id);
+    let query = db().from('notifications').update({ read: true }).eq('user_id', user.sub);
     if (body.id) query = query.eq('id', String(body.id));
     const { error } = await query;
     if (error) throw new ApiError(500, error.message);

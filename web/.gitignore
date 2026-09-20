@@ -8,3 +8,7 @@ out
 *.log
 .vercel
 next-env.d.ts.timestamp
+
+# Supabase CLI local link metadata
+supabase/.temp
+supabase/.branches

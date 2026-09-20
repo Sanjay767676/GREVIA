@@ -2,15 +2,11 @@ import { requireRole } from '@/lib/auth';
 import { ROLES } from '@/lib/constants';
 import { PortalShell } from '@/components/PortalShell';
 
-export default async function UserLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const profile = await requireRole([ROLES.STUDENT, ROLES.FACULTY]);
+export default async function UserLayout({ children }: { children: React.ReactNode }) {
+  const user = await requireRole([ROLES.STUDENT, ROLES.FACULTY]);
   return (
     <PortalShell
-      profile={profile}
+      user={user}
       portalName="User portal"
       nav={[
         { href: '/user', label: 'Dashboard' },

@@ -1,15 +1,15 @@
-import { createClient } from '@/lib/supabase/server';
+import { db } from '@/lib/db';
 import { requireRole } from '@/lib/auth';
 import { ROLES } from '@/lib/constants';
 import { ComplaintTable } from '@/components/ComplaintTable';
 import type { Complaint } from '@/lib/types';
 
 export default async function MyComplaints() {
-  await requireRole([ROLES.STUDENT, ROLES.FACULTY]);
-  const supabase = createClient();
-  const { data } = await supabase
+  const user = await requireRole([ROLES.STUDENT, ROLES.FACULTY]);
+  const { data } = await db()
     .from('complaints')
     .select('*')
+    .eq('created_by', user.sub)
     .order('created_at', { ascending: false });
 
   return (

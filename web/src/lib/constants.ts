@@ -17,14 +17,14 @@ export const ROLES = {
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
-// Which portal each role lands in.
+// Which portal each role lands in (single-app, role-gated routes).
 export const ROLE_PORTAL: Record<Role, string> = {
   STUDENT: '/user',
   FACULTY: '/user',
   TECHNICIAN: '/worker',
   HOD: '/hod',
-  PRINCIPAL: '/admin',
-  SUPER_ADMIN: '/admin',
+  PRINCIPAL: '/principal',
+  SUPER_ADMIN: '/principal',
 };
 
 // Complaint lifecycle statuses (PRD §7).

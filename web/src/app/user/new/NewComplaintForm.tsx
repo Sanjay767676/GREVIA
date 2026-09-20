@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/browser';
-import { publicEnv } from '@/lib/env';
 import type { Department } from '@/lib/types';
 
 export function NewComplaintForm({
@@ -24,19 +22,13 @@ export function NewComplaintForm({
 
   async function uploadImage(): Promise<string | null> {
     if (!file) return null;
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
-    const ext = file.name.split('.').pop() || 'jpg';
-    const path = `${user.id}/${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage
-      .from(publicEnv.storageBucket)
-      .upload(path, file, { upsert: false });
-    if (upErr) throw new Error(`Image upload failed: ${upErr.message}`);
-    return path;
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('prefix', 'complaint');
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.path ?? null;
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -48,13 +40,11 @@ export function NewComplaintForm({
     }
     setLoading(true);
     try {
-      // Image upload is optional and must not block submission.
       let imagePath: string | null = null;
       try {
         imagePath = await uploadImage();
-      } catch (imgErr) {
-        console.warn(imgErr);
-        // Continue without image.
+      } catch {
+        /* image optional */
       }
 
       const res = await fetch('/api/complaints', {
@@ -86,74 +76,39 @@ export function NewComplaintForm({
     <form onSubmit={onSubmit} className="card space-y-4 p-6">
       <div>
         <label className="label" htmlFor="title">Title</label>
-        <input
-          id="title"
-          className="input"
-          required
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g. WiFi not working in CSE Lab 3"
-        />
+        <input id="title" className="input" required value={title}
+          onChange={(e) => setTitle(e.target.value)} placeholder="e.g. WiFi not working in CSE Lab 3" />
       </div>
-
       <div>
         <label className="label" htmlFor="description">Description</label>
-        <textarea
-          id="description"
-          className="input min-h-28"
-          required
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe the problem in detail…"
-        />
-        <p className="mt-1 text-xs text-slate-400">
-          A meaningful description helps automatic classification.
-        </p>
+        <textarea id="description" className="input min-h-28" required value={description}
+          onChange={(e) => setDescription(e.target.value)} placeholder="Describe the problem in detail…" />
+        <p className="mt-1 text-xs text-slate-400">A meaningful description helps automatic classification.</p>
       </div>
-
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="label" htmlFor="location">Location</label>
-          <input
-            id="location"
-            className="input"
-            required
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="e.g. CSE Block, Room 302"
-          />
+          <input id="location" className="input" required value={location}
+            onChange={(e) => setLocation(e.target.value)} placeholder="e.g. CSE Block, Room 302" />
         </div>
         <div>
           <label className="label" htmlFor="department">Department</label>
-          <select
-            id="department"
-            className="input"
-            value={departmentId}
-            onChange={(e) => setDepartmentId(e.target.value)}
-          >
+          <select id="department" className="input" value={departmentId}
+            onChange={(e) => setDepartmentId(e.target.value)}>
             <option value="">— Select —</option>
             {departments.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
+              <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </select>
         </div>
       </div>
-
       <div>
         <label className="label" htmlFor="image">Image (optional)</label>
-        <input
-          id="image"
-          type="file"
-          accept="image/*"
+        <input id="image" type="file" accept="image/*"
           className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-200"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       </div>
-
       {error && <p className="text-sm text-red-600">{error}</p>}
-
       <button type="submit" disabled={loading} className="btn-primary w-full">
         {loading ? 'Submitting…' : 'Submit complaint'}
       </button>

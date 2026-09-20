@@ -16,7 +16,7 @@ export function NotificationBell() {
       setItems(data.notifications ?? []);
       setUnread(data.unread ?? 0);
     } catch {
-      // ignore transient errors
+      /* ignore */
     }
   }
 

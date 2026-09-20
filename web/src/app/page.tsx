@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { redirect } from 'next/navigation';
-import { getSessionProfile, portalForRole } from '@/lib/auth';
+import { currentUser, portalForRole } from '@/lib/auth';
 
 export default async function Home() {
-  const profile = await getSessionProfile();
-  if (profile) redirect(portalForRole(profile.role));
+  const user = await currentUser();
+  if (user) redirect(portalForRole(user.role));
 
   const portals = [
     { title: 'User portal', desc: 'Students & faculty submit and track complaints.', icon: '🎓' },

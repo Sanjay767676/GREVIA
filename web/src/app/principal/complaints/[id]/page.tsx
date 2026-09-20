@@ -4,15 +4,9 @@ import { loadComplaintDetail } from '@/lib/complaint-detail';
 import { ComplaintDetail } from '@/components/ComplaintDetail';
 import { AdminActions } from './AdminActions';
 
-export default async function AdminComplaintDetail({
-  params,
-}: {
-  params: { id: string };
-}) {
-  await requireRole([ROLES.PRINCIPAL, ROLES.SUPER_ADMIN]);
-  const { complaint, history, imageUrl, proofUrl } = await loadComplaintDetail(
-    params.id,
-  );
+export default async function PrincipalComplaintDetail({ params }: { params: { id: string } }) {
+  const user = await requireRole([ROLES.PRINCIPAL, ROLES.SUPER_ADMIN]);
+  const { complaint, history, imageUrl, proofUrl } = await loadComplaintDetail(params.id, user);
 
   return (
     <ComplaintDetail

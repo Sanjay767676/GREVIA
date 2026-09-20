@@ -10,11 +10,19 @@ node_modules/
 **/.env.local
 **/.env*.local
 
-# Next.js build output
+# Build output
 .next/
 **/.next/
 out/
 **/out/
+dist/
+**/dist/
+build/
+**/build/
+
+# TypeScript build info
+*.tsbuildinfo
+**/*.tsbuildinfo
 
 # Misc
 .DS_Store
@@ -23,6 +31,6 @@ out/
 **/.vercel
 next-env.d.ts.timestamp
 
-# TypeScript build info
-*.tsbuildinfo
-**/*.tsbuildinfo
+# Supabase CLI local link metadata
+**/supabase/.temp
+**/supabase/.branches

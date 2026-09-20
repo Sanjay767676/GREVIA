@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { db } from '@/lib/db';
 import { requireRole } from '@/lib/auth';
 import { ROLES, STATUS } from '@/lib/constants';
 import { isDueSoon, isOverdue } from '@/lib/engines/sla';
@@ -7,31 +7,23 @@ import { ComplaintTable } from '@/components/ComplaintTable';
 import type { Complaint } from '@/lib/types';
 
 export default async function WorkerDashboard() {
-  const profile = await requireRole([ROLES.TECHNICIAN]);
-  const supabase = createClient();
-  const { data } = await supabase
+  const user = await requireRole([ROLES.TECHNICIAN]);
+  const { data } = await db()
     .from('complaints')
     .select('*')
-    .eq('assigned_to', profile.id)
+    .eq('assigned_to', user.sub)
     .order('sla_deadline_at', { ascending: true });
-
   const complaints = (data ?? []) as Complaint[];
 
   const active = complaints.filter(
-    (c) =>
-      c.status !== STATUS.CLOSED &&
-      c.status !== STATUS.USER_VERIFICATION &&
-      c.status !== STATUS.RESOLVED,
+    (c) => c.status !== STATUS.CLOSED && c.status !== STATUS.USER_VERIFICATION && c.status !== STATUS.RESOLVED,
   );
   const overdue = active.filter((c) => isOverdue(c.sla_deadline_at));
   const dueSoon = active.filter(
     (c) => !isOverdue(c.sla_deadline_at) && isDueSoon(c.sla_deadline_at, c.sla_start_at),
   );
   const resolved = complaints.filter(
-    (c) =>
-      c.status === STATUS.RESOLVED ||
-      c.status === STATUS.USER_VERIFICATION ||
-      c.status === STATUS.CLOSED,
+    (c) => c.status === STATUS.RESOLVED || c.status === STATUS.USER_VERIFICATION || c.status === STATUS.CLOSED,
   );
 
   return (
@@ -57,20 +49,12 @@ export default async function WorkerDashboard() {
 
       <section>
         <h2 className="mb-3 text-sm font-semibold text-slate-700">Active</h2>
-        <ComplaintTable
-          complaints={active}
-          basePath="/worker/complaints"
-          emptyLabel="No active complaints assigned to you."
-        />
+        <ComplaintTable complaints={active} basePath="/worker/complaints" emptyLabel="No active complaints assigned to you." />
       </section>
 
       <section>
         <h2 className="mb-3 text-sm font-semibold text-slate-700">Resolved / closed</h2>
-        <ComplaintTable
-          complaints={resolved}
-          basePath="/worker/complaints"
-          emptyLabel="Nothing resolved yet."
-        />
+        <ComplaintTable complaints={resolved} basePath="/worker/complaints" emptyLabel="Nothing resolved yet." />
       </section>
     </div>
   );

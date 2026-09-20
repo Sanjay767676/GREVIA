@@ -4,17 +4,10 @@ import { loadComplaintDetail } from '@/lib/complaint-detail';
 import { ComplaintDetail } from '@/components/ComplaintDetail';
 import { WorkerActions } from './WorkerActions';
 
-export default async function WorkerComplaintDetail({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const profile = await requireRole([ROLES.TECHNICIAN]);
-  const { complaint, history, imageUrl, proofUrl } = await loadComplaintDetail(
-    params.id,
-  );
-
-  const isAssigned = complaint.assigned_to === profile.id;
+export default async function WorkerComplaintDetail({ params }: { params: { id: string } }) {
+  const user = await requireRole([ROLES.TECHNICIAN]);
+  const { complaint, history, imageUrl, proofUrl } = await loadComplaintDetail(params.id, user);
+  const isAssigned = complaint.assigned_to === user.sub;
 
   return (
     <ComplaintDetail
@@ -26,9 +19,7 @@ export default async function WorkerComplaintDetail({
         isAssigned ? (
           <WorkerActions complaintId={complaint.id} status={complaint.status} />
         ) : (
-          <p className="text-sm text-slate-500">
-            This complaint is not assigned to you.
-          </p>
+          <p className="text-sm text-slate-500">This complaint is not assigned to you.</p>
         )
       }
     />

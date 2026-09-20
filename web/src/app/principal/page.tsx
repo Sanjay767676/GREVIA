@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { db } from '@/lib/db';
 import { requireRole } from '@/lib/auth';
 import { ROLES } from '@/lib/constants';
 import { computeStats } from '@/lib/stats';
@@ -8,9 +8,9 @@ import { BarList } from '@/components/BarList';
 import { ComplaintTable } from '@/components/ComplaintTable';
 import type { Complaint, Department } from '@/lib/types';
 
-export default async function AdminOverview() {
+export default async function PrincipalOverview() {
   await requireRole([ROLES.PRINCIPAL, ROLES.SUPER_ADMIN]);
-  const supabase = createClient();
+  const supabase = db();
 
   const [{ data: complaintsData }, { data: deptsData }] = await Promise.all([
     supabase.from('complaints').select('*').order('created_at', { ascending: false }),
@@ -22,7 +22,6 @@ export default async function AdminOverview() {
   const stats = computeStats(complaints);
   const avg = avgResolutionHours(complaints);
 
-  // Department comparison.
   const deptNames = new Map(departments.map((d) => [d.id, d.name]));
   const deptCounts = new Map<string, number>();
   for (const c of complaints) {
@@ -62,11 +61,7 @@ export default async function AdminOverview() {
 
       <div>
         <h2 className="mb-3 text-sm font-semibold text-slate-700">Recent complaints</h2>
-        <ComplaintTable
-          complaints={complaints.slice(0, 10)}
-          basePath="/admin/complaints"
-          emptyLabel="No complaints yet."
-        />
+        <ComplaintTable complaints={complaints.slice(0, 10)} basePath="/principal/complaints" emptyLabel="No complaints yet." />
       </div>
     </div>
   );

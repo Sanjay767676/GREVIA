@@ -79,8 +79,10 @@ export async function escalateComplaint(
   }
 
   // Extend the SLA window for the new level using the same priority.
+  // When escalating to the HOD, apply the HOD-stage window; beyond that
+  // (principal / higher authority) reuse the HOD window as a holding timer.
   const priority = complaint.priority ?? 'MEDIUM';
-  const sla = await computeSlaWindow(admin, priority);
+  const sla = await computeSlaWindow(admin, priority, 'hod');
 
   const { error: updateErr } = await admin
     .from('complaints')
@@ -137,33 +139,26 @@ async function notifyEscalationTargets(
     // Notify the HOD of the complaint's department.
     if (complaint.department_id) {
       const { data: hods } = await admin
-        .from('profiles')
+        .from('app_users')
         .select('id')
         .eq('role', ROLES.HOD)
         .eq('department_id', complaint.department_id);
-      await notifyMany(admin, (hods ?? []).map((h) => h.id), {
+      await notifyMany(admin, (hods ?? []).map((h: { id: string }) => h.id), {
         complaintId: complaint.id,
         title,
         body,
       });
     }
-  } else if (toLevel === ESCALATION_LEVEL.PRINCIPAL) {
+  } else if (
+    toLevel === ESCALATION_LEVEL.PRINCIPAL ||
+    toLevel === ESCALATION_LEVEL.HIGHER_AUTHORITY
+  ) {
+    // Principal is the main admin and top of the chain here.
     const { data: principals } = await admin
-      .from('profiles')
+      .from('app_users')
       .select('id')
-      .eq('role', ROLES.PRINCIPAL);
-    await notifyMany(admin, (principals ?? []).map((p) => p.id), {
-      complaintId: complaint.id,
-      title,
-      body,
-    });
-  } else if (toLevel === ESCALATION_LEVEL.HIGHER_AUTHORITY) {
-    // Higher authority modeled as SUPER_ADMIN for this platform.
-    const { data: admins } = await admin
-      .from('profiles')
-      .select('id')
-      .eq('role', ROLES.SUPER_ADMIN);
-    await notifyMany(admin, (admins ?? []).map((a) => a.id), {
+      .in('role', [ROLES.PRINCIPAL, ROLES.SUPER_ADMIN]);
+    await notifyMany(admin, (principals ?? []).map((p: { id: string }) => p.id), {
       complaintId: complaint.id,
       title,
       body,
