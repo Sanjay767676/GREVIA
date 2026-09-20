@@ -30,13 +30,13 @@ export default async function Home() {
               priority
             />
           </span>
-          <h1 className="bg-gradient-to-r from-brand-700 to-brand-500 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent">
+          <h1 className="text-5xl font-extrabold tracking-tight text-black">
             Grievia
           </h1>
-          <p className="mx-auto mt-3 max-w-xl text-lg text-slate-600">
+          <p className="mx-auto mt-3 max-w-xl text-lg text-black/70">
             AI-assisted campus grievance management &amp; automatic escalation.
           </p>
-          <p className="mt-1 text-sm font-medium text-slate-500">
+          <p className="mt-1 text-sm font-medium text-black/60">
             SNS College of Technology · Sincerity · Nobility · Service
           </p>
           <div className="mt-7 flex items-center justify-center gap-3">
@@ -46,30 +46,8 @@ export default async function Home() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {portals.map((c) => (
-            <div key={c.title} className="card card-hover p-5">
-              <div className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-xl">
-                {c.icon}
-              </div>
-              <p className="font-semibold text-slate-800">{c.title}</p>
-              <p className="mt-1 text-sm text-slate-500">{c.desc}</p>
-            </div>
-          ))}
-        </div>
 
-        <div className="mt-12 grid gap-4 rounded-2xl border border-slate-200 bg-white/60 p-6 sm:grid-cols-3">
-          {[
-            { k: 'Deterministic core', v: 'Assignment, SLA & escalation run without any AI dependency.' },
-            { k: 'AI-assisted routing', v: 'Optional multi-provider classification with rule-engine fallback.' },
-            { k: 'Full audit trail', v: 'Every action is logged with an immutable history timeline.' },
-          ].map((f) => (
-            <div key={f.k}>
-              <p className="section-title">{f.k}</p>
-              <p className="mt-2 text-sm text-slate-500">{f.v}</p>
-            </div>
-          ))}
-        </div>
+
       </div>
     </div>
   );

@@ -4,8 +4,8 @@
 
 /* ---------------------------------------------------------------------------
    Grievia design tokens — SNS College brand.
-   Primary: deep indigo/navy (crest center). Accent: warm gold (gear).
-   Canvas: soft cool neutral. Institutional, trustworthy, modern SaaS.
+   Canvas: warm amber (SNS gear). Text: black. Cards & inputs: white.
+   Matches the palette used in the SNS conference portal.
 --------------------------------------------------------------------------- */
 :root {
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -19,12 +19,12 @@
   --gold-400: #f6c445;
   --gold-500: #eab308;
 
-  /* Surfaces */
-  --bg: #f4f6fb;
+  /* Surfaces — amber canvas, white cards/inputs, black text */
+  --bg: #ffbf00;
   --surface: #ffffff;
-  --border: #e6e9f2;
-  --text: #0f1836;
-  --text-muted: #5b647d;
+  --border: #edda9c;
+  --text: #000000;
+  --text-muted: #6b4f00;
 }
 
 html,
@@ -35,8 +35,8 @@ body {
 
 body {
   background:
-    radial-gradient(1200px 600px at 100% -10%, rgba(255, 191, 0, 0.06), transparent 60%),
-    radial-gradient(900px 500px at -10% 0%, rgba(234, 179, 8, 0.05), transparent 55%),
+    radial-gradient(1100px 550px at 85% -15%, rgba(255, 255, 255, 0.32), transparent 55%),
+    radial-gradient(900px 500px at -5% 0%, rgba(230, 172, 0, 0.55), transparent 55%),
     var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
@@ -46,21 +46,21 @@ body {
 
 @layer components {
   .card {
-    @apply rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,24,54,0.04),0_8px_24px_-12px_rgba(15,24,54,0.10)];
+    @apply rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06),0_8px_24px_-12px_rgba(0,0,0,0.10)];
   }
   .card-hover {
-    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_6px_rgba(15,24,54,0.06),0_16px_40px_-16px_rgba(15,24,54,0.18)];
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_6px_rgba(0,0,0,0.08),0_16px_40px_-16px_rgba(0,0,0,0.18)];
   }
 
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn text-slate-900 shadow-sm;
-    background-image: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+    @apply btn text-white shadow-sm;
+    background-color: #111111;
   }
   .btn-primary:hover {
-    background-image: linear-gradient(135deg, var(--brand-600), var(--brand-700));
+    background-color: #000000;
   }
   .btn-secondary {
     @apply btn border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50;
