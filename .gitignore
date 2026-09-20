@@ -34,3 +34,6 @@ next-env.d.ts.timestamp
 # Supabase CLI local link metadata
 **/supabase/.temp
 **/supabase/.branches
+
+# Personal notes (not for the repo)
+guide.md
