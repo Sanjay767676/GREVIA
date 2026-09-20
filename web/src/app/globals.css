@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   Grievia design tokens — SNS College brand.
+   Primary: deep indigo/navy (crest center). Accent: warm gold (gear).
+   Canvas: soft cool neutral. Institutional, trustworthy, modern SaaS.
+--------------------------------------------------------------------------- */
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Brand */
+  --brand-50: #eef1fb;
+  --brand-100: #d9e0f6;
+  --brand-500: #2a3a8f;
+  --brand-600: #22307a;
+  --brand-700: #1b2661;
+  --gold-400: #f6c445;
+  --gold-500: #eab308;
+
+  /* Surfaces */
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --border: #e6e9f2;
+  --text: #0f1836;
+  --text-muted: #5b647d;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 100% -10%, rgba(42, 58, 143, 0.06), transparent 60%),
+    radial-gradient(900px 500px at -10% 0%, rgba(234, 179, 8, 0.05), transparent 55%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,24,54,0.04),0_8px_24px_-12px_rgba(15,24,54,0.10)];
+  }
+  .card-hover {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_6px_rgba(15,24,54,0.06),0_16px_40px_-16px_rgba(15,24,54,0.18)];
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn text-white shadow-sm;
+    background-image: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+  }
+  .btn-primary:hover {
+    background-image: linear-gradient(135deg, var(--brand-600), var(--brand-700));
+  }
+  .btn-secondary {
+    @apply btn border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white shadow-sm hover:bg-red-700;
+  }
+  .btn-gold {
+    @apply btn font-semibold text-slate-900 shadow-sm;
+    background-image: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-shadow focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-slate-700;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset;
+  }
+
+  /* Section heading with accent bar */
+  .section-title {
+    @apply flex items-center gap-2 text-sm font-semibold text-slate-700;
+  }
+  .section-title::before {
+    content: '';
+    @apply h-4 w-1 rounded-full;
+    background-image: linear-gradient(180deg, var(--gold-400), var(--brand-500));
+  }
+}
+
+/* Thin, unobtrusive scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd2e0 transparent;
+}
+*::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #cbd2e0;
+  border-radius: 9999px;
+}
