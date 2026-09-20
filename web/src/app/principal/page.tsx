@@ -6,6 +6,7 @@ import { avgResolutionHours, categoryDistribution } from '@/lib/analytics';
 import { StatCard } from '@/components/StatCard';
 import { BarList } from '@/components/BarList';
 import { ComplaintTable } from '@/components/ComplaintTable';
+import { RunEscalation } from './RunEscalation';
 import type { Complaint, Department } from '@/lib/types';
 
 export default async function PrincipalOverview() {
@@ -34,9 +35,12 @@ export default async function PrincipalOverview() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">College-wide overview</h1>
-        <p className="text-sm text-slate-500">All complaints across departments.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">College-wide overview</h1>
+          <p className="text-sm text-slate-500">All complaints across departments.</p>
+        </div>
+        <RunEscalation />
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
