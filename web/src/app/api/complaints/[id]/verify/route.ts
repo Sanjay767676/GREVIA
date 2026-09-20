@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiError, errorResponse, requireApiUser } from '@/lib/api-auth';
 import { db } from '@/lib/db';
 import { addAudit, addHistory, notify } from '@/lib/engines/events';
+import { computeSlaWindow } from '@/lib/engines/sla';
 import { AUDIT_ACTIONS, STATUS } from '@/lib/constants';
 import type { Complaint } from '@/lib/types';
 
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       .single<Complaint>();
     if (!complaint) throw new ApiError(404, 'Complaint not found');
     if (complaint.created_by !== user.sub) throw new ApiError(403, 'Only the complainant can verify');
-    if (complaint.status !== STATUS.USER_VERIFICATION)
+    if (complaint.status !== STATUS.RESOLVED)
       throw new ApiError(409, 'Complaint is not awaiting verification');
 
     if (decision === 'YES') {
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         complaintId: complaint.id,
         actorId: user.sub,
         action: AUDIT_ACTIONS.CLOSED,
-        fromStatus: STATUS.USER_VERIFICATION,
+        fromStatus: STATUS.RESOLVED,
         toStatus: STATUS.CLOSED,
         note: 'Complainant confirmed resolution',
       });
@@ -51,9 +52,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     if (decision === 'NO') {
+      // Reopen: send it back to the assigned worker AND restart its SLA window,
+      // otherwise the next cron sweep would instantly re-escalate it.
+      const sla = await computeSlaWindow(supabase, complaint.priority ?? 'MEDIUM', 'worker');
       const { data: updated, error } = await supabase
         .from('complaints')
-        .update({ status: STATUS.REOPENED, resolved_at: null })
+        .update({
+          status: STATUS.REOPENED,
+          resolved_at: null,
+          sla_start_at: sla.start,
+          sla_deadline_at: sla.deadline,
+        })
         .eq('id', complaint.id)
         .select('*')
         .single();
@@ -62,7 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         complaintId: complaint.id,
         actorId: user.sub,
         action: AUDIT_ACTIONS.REOPENED,
-        fromStatus: STATUS.USER_VERIFICATION,
+        fromStatus: STATUS.RESOLVED,
         toStatus: STATUS.REOPENED,
         note: String(body.note ?? '').trim() || 'Complainant reopened complaint',
       });

@@ -14,6 +14,10 @@ interface WorkerRow {
   full_name: string;
   username: string;
 }
+interface DepartmentRow {
+  id: string;
+  name: string;
+}
 
 // ---- SLA editor (worker + HOD windows per priority) -----------------------
 export function SlaEditor({ sla }: { sla: SlaRow[] }) {
@@ -85,9 +89,16 @@ export function SlaEditor({ sla }: { sla: SlaRow[] }) {
 }
 
 // ---- Assignment map editor ------------------------------------------------
-export function AssignmentEditor({ workers }: { workers: WorkerRow[] }) {
+export function AssignmentEditor({
+  workers,
+  departments = [],
+}: {
+  workers: WorkerRow[];
+  departments?: DepartmentRow[];
+}) {
   const router = useRouter();
   const [category, setCategory] = useState<Category>(CATEGORIES.NETWORK);
+  const [departmentId, setDepartmentId] = useState('');
   const [staffId, setStaffId] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -102,7 +113,7 @@ export function AssignmentEditor({ workers }: { workers: WorkerRow[] }) {
     const res = await fetch('/api/admin/assignments', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category, staff_id: staffId }),
+      body: JSON.stringify({ category, staff_id: staffId, department_id: departmentId || null }),
     });
     setSaving(false);
     setMsg(res.ok ? 'Mapping updated.' : 'Failed to update.');
@@ -122,6 +133,15 @@ export function AssignmentEditor({ workers }: { workers: WorkerRow[] }) {
           </select>
         </div>
         <div className="min-w-48">
+          <label className="label">Scope</label>
+          <select className="input" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+            <option value="">Global (all departments)</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="min-w-48">
           <label className="label">Worker</label>
           <select className="input" value={staffId} onChange={(e) => setStaffId(e.target.value)}>
             <option value="">— Select —</option>
@@ -135,6 +155,9 @@ export function AssignmentEditor({ workers }: { workers: WorkerRow[] }) {
         </button>
         {msg && <span className="text-sm text-slate-500">{msg}</span>}
       </div>
+      <p className="mt-2 text-xs text-slate-400">
+        A department-specific mapping overrides the global one for that department.
+      </p>
     </div>
   );
 }

@@ -14,20 +14,28 @@ interface WorkerRow {
   full_name: string;
   username: string;
 }
+interface DepartmentRow {
+  id: string;
+  name: string;
+}
 
 export default async function ConfigPage() {
   await requireRole([ROLES.PRINCIPAL, ROLES.SUPER_ADMIN]);
   const supabase = db();
 
-  const [{ data: sla }, { data: workers }, { data: mappings }] = await Promise.all([
-    supabase.from('sla_config').select('*').order('priority'),
-    supabase.from('app_users').select('id, full_name, username').eq('role', ROLES.TECHNICIAN),
-    supabase.from('category_staff_map').select('*'),
-  ]);
+  const [{ data: sla }, { data: workers }, { data: mappings }, { data: departments }] =
+    await Promise.all([
+      supabase.from('sla_config').select('*').order('priority'),
+      supabase.from('app_users').select('id, full_name, username').eq('role', ROLES.TECHNICIAN),
+      supabase.from('category_staff_map').select('*'),
+      supabase.from('departments').select('id, name').order('name'),
+    ]);
 
   const staffMap = (mappings ?? []) as CategoryStaffMap[];
   const workerRows = (workers ?? []) as WorkerRow[];
+  const deptRows = (departments ?? []) as DepartmentRow[];
   const staffName = new Map(workerRows.map((w) => [w.id, w.full_name || w.username]));
+  const deptName = new Map(deptRows.map((d) => [d.id, d.name]));
 
   return (
     <div className="space-y-6">
@@ -41,10 +49,14 @@ export default async function ConfigPage() {
 
       <SlaEditor sla={(sla ?? []) as SlaRow[]} />
 
-      <AssignmentEditor workers={workerRows} />
+      <AssignmentEditor workers={workerRows} departments={deptRows} />
 
       <div className="card p-5">
         <h2 className="mb-3 text-sm font-semibold text-slate-700">Current category → worker mappings</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          A department-specific mapping takes priority over the global one for complaints filed
+          under that department.
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase text-slate-500">
@@ -62,7 +74,9 @@ export default async function ConfigPage() {
                   <tr key={m.id}>
                     <td className="py-2 text-slate-700">{CATEGORY_LABELS[m.category]}</td>
                     <td className="py-2 text-slate-700">{staffName.get(m.staff_id) ?? m.staff_id}</td>
-                    <td className="py-2 text-slate-500">{m.department_id ? 'Department' : 'Global'}</td>
+                    <td className="py-2 text-slate-500">
+                      {m.department_id ? (deptName.get(m.department_id) ?? 'Department') : 'Global'}
+                    </td>
                   </tr>
                 ))
               )}

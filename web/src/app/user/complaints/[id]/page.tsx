@@ -8,7 +8,7 @@ export default async function UserComplaintDetail({ params }: { params: { id: st
   const user = await requireRole([ROLES.STUDENT, ROLES.FACULTY]);
   const { complaint, history, imageUrl, proofUrl } = await loadComplaintDetail(params.id, user);
 
-  const canVerify = complaint.created_by === user.sub && complaint.status === STATUS.USER_VERIFICATION;
+  const canVerify = complaint.created_by === user.sub && complaint.status === STATUS.RESOLVED;
 
   return (
     <ComplaintDetail

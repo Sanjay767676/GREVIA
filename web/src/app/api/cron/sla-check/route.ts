@@ -18,7 +18,9 @@ async function handler(req: NextRequest) {
 
   const supabase = db();
   const nowIso = new Date().toISOString();
-  const escalatable = OPEN_STATUSES.filter((s) => s !== STATUS.USER_VERIFICATION);
+  const escalatable = OPEN_STATUSES.filter(
+    (s) => s !== STATUS.USER_VERIFICATION && s !== STATUS.RESOLVED,
+  );
 
   const { data: due, error } = await supabase
     .from('complaints')

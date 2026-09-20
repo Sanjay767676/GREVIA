@@ -42,8 +42,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     } else if (action === 'START') {
       toStatus = STATUS.IN_PROGRESS;
     } else {
-      // RESOLVE — record completion proof + timestamp; ask user to verify.
-      toStatus = STATUS.USER_VERIFICATION;
+      // RESOLVE — record completion proof + timestamp; ask the user to verify.
+      toStatus = STATUS.RESOLVED;
       patch.resolution_notes = String(body.resolution_notes ?? '').trim() || null;
       patch.resolution_proof_path =
         typeof body.resolution_proof_path === 'string' ? body.resolution_proof_path : null;
