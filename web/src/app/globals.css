@@ -11,11 +11,11 @@
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* Brand */
-  --brand-50: #eef1fb;
-  --brand-100: #d9e0f6;
-  --brand-500: #2a3a8f;
-  --brand-600: #22307a;
-  --brand-700: #1b2661;
+  --brand-50: #fff9e6;
+  --brand-100: #ffefc2;
+  --brand-500: #ffbf00;
+  --brand-600: #e6ac00;
+  --brand-700: #cc9900;
   --gold-400: #f6c445;
   --gold-500: #eab308;
 
@@ -35,7 +35,7 @@ body {
 
 body {
   background:
-    radial-gradient(1200px 600px at 100% -10%, rgba(42, 58, 143, 0.06), transparent 60%),
+    radial-gradient(1200px 600px at 100% -10%, rgba(255, 191, 0, 0.06), transparent 60%),
     radial-gradient(900px 500px at -10% 0%, rgba(234, 179, 8, 0.05), transparent 55%),
     var(--bg);
   color: var(--text);
@@ -56,7 +56,7 @@ body {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn text-white shadow-sm;
+    @apply btn text-slate-900 shadow-sm;
     background-image: linear-gradient(135deg, var(--brand-500), var(--brand-600));
   }
   .btn-primary:hover {
