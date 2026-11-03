@@ -65,6 +65,9 @@ router.post(
       throw new ApiError(422, 'Description must be at least 10 characters');
     }
     if (!location) throw new ApiError(422, 'Location is required');
+    if (imagePath && !imagePath.startsWith(`${me.sub}/`)) {
+      throw new ApiError(422, 'Invalid image path');
+    }
 
     const supabase = db();
 
@@ -235,10 +238,14 @@ router.post(
     } else {
       toStatus = STATUS.RESOLVED;
       patch.resolution_notes = String(req.body?.resolution_notes ?? '').trim() || null;
-      patch.resolution_proof_path =
+      const proofPath =
         typeof req.body?.resolution_proof_path === 'string'
           ? req.body.resolution_proof_path
           : null;
+      if (proofPath && !proofPath.startsWith(`${me.sub}/`)) {
+        throw new ApiError(422, 'Invalid proof path');
+      }
+      patch.resolution_proof_path = proofPath;
       patch.resolved_at = new Date().toISOString();
     }
     patch.status = toStatus;

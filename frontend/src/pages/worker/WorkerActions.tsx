@@ -1,14 +1,8 @@
 import { useState } from 'react';
 import { Icon } from '../../components/Icon';
-import { api, post } from '../../lib/api';
-
-async function uploadProof(file: File): Promise<string | null> {
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('prefix', 'proof');
-  const data = await api<{ path: string }>('/api/upload', { method: 'POST', body: fd });
-  return data.path ?? null;
-}
+import { ImagePicker } from '../../components/ImagePicker';
+import { post } from '../../lib/api';
+import { uploadImage, validateImage } from '../../lib/upload';
 
 export function WorkerActions({
   complaintId,
@@ -30,10 +24,19 @@ export function WorkerActions({
     try {
       let proofPath: string | null = null;
       if (action === 'RESOLVE' && proof) {
+        const problem = validateImage(proof);
+        if (problem) {
+          setError(problem);
+          return;
+        }
         try {
-          proofPath = await uploadProof(proof);
-        } catch {
-          /* proof optional */
+          proofPath = await uploadImage(proof, 'proof');
+        } catch (err) {
+          const detail = err instanceof Error ? err.message : 'Upload failed';
+          setError(
+            `Proof photo upload failed: ${detail}. Try again, or remove the photo to complete without it.`,
+          );
+          return;
         }
       }
       await post(`/api/complaints/${complaintId}/status`, {
@@ -90,12 +93,21 @@ export function WorkerActions({
             <label className="label" htmlFor="proof">
               Completion proof <span className="font-normal text-stone-400">(optional)</span>
             </label>
-            <input
+            <ImagePicker
               id="proof"
-              type="file"
-              accept="image/*"
-              className="block w-full text-sm text-stone-500 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-amber-800 file:ring-1 file:ring-amber-200 hover:file:bg-amber-50"
-              onChange={(e) => setProof(e.target.files?.[0] ?? null)}
+              file={proof}
+              onSelect={(next) => {
+                setError(null);
+                if (next) {
+                  const problem = validateImage(next);
+                  if (problem) {
+                    setError(problem);
+                    setProof(null);
+                    return;
+                  }
+                }
+                setProof(next);
+              }}
             />
           </div>
         </div>

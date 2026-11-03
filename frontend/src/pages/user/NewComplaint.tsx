@@ -1,19 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon';
+import { ImagePicker } from '../../components/ImagePicker';
 import { PageHeader } from '../../components/PageHeader';
-import { get, post, api } from '../../lib/api';
+import { get, post } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import type { Department } from '../../lib/types';
+import { uploadImage, validateImage } from '../../lib/upload';
 import { useAsync } from '../../lib/useAsync';
-
-async function uploadImage(file: File): Promise<string | null> {
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('prefix', 'complaint');
-  const data = await api<{ path: string }>('/api/upload', { method: 'POST', body: fd });
-  return data.path ?? null;
-}
 
 export function NewComplaint() {
   const { user } = useAuth();
@@ -40,10 +34,19 @@ export function NewComplaint() {
     try {
       let imagePath: string | null = null;
       if (file) {
+        const problem = validateImage(file);
+        if (problem) {
+          setError(problem);
+          return;
+        }
         try {
-          imagePath = await uploadImage(file);
-        } catch {
-          /* image optional */
+          imagePath = await uploadImage(file, 'complaint');
+        } catch (err) {
+          const detail = err instanceof Error ? err.message : 'Upload failed';
+          setError(
+            `Photo upload failed: ${detail}. Try again, or remove the photo to submit without it.`,
+          );
+          return;
         }
       }
 
@@ -160,29 +163,22 @@ export function NewComplaint() {
               <label className="label" htmlFor="image">
                 Photo evidence <span className="font-normal text-stone-400">(optional)</span>
               </label>
-              <label
-                htmlFor="image"
-                className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-amber-300 bg-amber-50/40 px-4 py-3 transition-colors hover:border-amber-400 hover:bg-amber-50"
-              >
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white text-amber-700 ring-1 ring-amber-200">
-                  <Icon name="plus" className="h-5 w-5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-stone-800">
-                    {file ? file.name : 'Add a photo'}
-                  </span>
-                  <span className="block text-[11px] text-stone-400">
-                    {file ? 'Click to replace' : 'PNG or JPG, up to a few MB'}
-                  </span>
-                </span>
-                <input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                />
-              </label>
+              <ImagePicker
+                id="image"
+                file={file}
+                onSelect={(next) => {
+                  setError(null);
+                  if (next) {
+                    const problem = validateImage(next);
+                    if (problem) {
+                      setError(problem);
+                      setFile(null);
+                      return;
+                    }
+                  }
+                  setFile(next);
+                }}
+              />
             </div>
 
             {error && (
