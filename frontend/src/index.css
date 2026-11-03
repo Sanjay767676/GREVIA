@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   Grievia — amber / yellow / white design system
+   Typography: Lexend for display, Source Sans 3 for body.
+--------------------------------------------------------------------------- */
+:root {
+  --brand-50: #fffdf2;
+  --brand-100: #fff9db;
+  --brand-200: #fff3b0;
+  --brand-300: #ffec85;
+  --brand-400: #ffe066;
+  --brand-500: #ffd43b;
+  --brand-600: #ffc107;
+  --brand-700: #ffa000;
+  --brand-900: #b36b00;
+  --ink: #1c1917;
+  --ink-muted: #78716c;
+  --surface: #ffffff;
+  --page: #fffdf6;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--page);
+  color: var(--ink);
+  font-family: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-size: 15px;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: 'Lexend', system-ui, sans-serif;
+}
+
+::selection {
+  background: #ffe066;
+  color: #1c1917;
+}
+
+@layer components {
+  .page-shell {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .card {
+    @apply rounded-2xl border border-amber-200/80 bg-white shadow-card;
+  }
+  .card-hover {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-amber-500 text-stone-950 shadow-[0_2px_0_#b36b00] hover:bg-amber-400 active:translate-y-px active:shadow-none;
+  }
+  .btn-secondary {
+    @apply btn border border-amber-300 bg-white text-amber-900 hover:border-amber-400 hover:bg-yellow-50;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white shadow-sm hover:bg-red-700;
+  }
+  .btn-ghost {
+    @apply btn text-amber-900 hover:bg-amber-100/70;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-amber-300 bg-white px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition-shadow focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-semibold text-amber-950;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset;
+  }
+
+  .section-title {
+    @apply flex items-center gap-2 font-display text-sm font-semibold text-amber-950;
+  }
+  .section-title::before {
+    content: '';
+    @apply h-4 w-1 rounded-full bg-amber-500;
+  }
+
+  .panel-head {
+    @apply flex items-center gap-2 border-b border-amber-100 bg-amber-50/60 px-5 py-3;
+  }
+
+  .eyebrow {
+    @apply font-display text-[11px] font-bold uppercase tracking-[0.16em] text-amber-700;
+  }
+}
+
+/* Focus and scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #ffc107 transparent;
+}
+*::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #ffc107;
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}

@@ -1,44 +1,50 @@
 # Grievia
 
-**Grievia** is a campus grievance (complaint) management system for **SNS College of Technology**. Students and faculty report problems on campus — a broken fan, no WiFi, a water leak, canteen issues, and so on. Grievia automatically figures out what kind of problem it is, hands it to the right worker, tracks how long it takes to fix, and — if nobody fixes it in time — automatically escalates it up the chain until someone does.
+**Grievia** is a campus grievance (complaint) management system for **SNS College of Technology**. Students and faculty report problems on campus — a broken fan, no WiFi, a water leak, canteen issues, and so on. Grievia automatically classifies the problem, routes it to the right worker, tracks how long it takes to fix, and escalates it up the chain when deadlines are missed.
 
-Everything lives in **one Next.js web app** that you can deploy to Vercel.
+The project is split into two apps:
+
+```
+frontend/   React 18 + Vite + TypeScript + Tailwind CSS
+backend/    Express 4 + TypeScript + Supabase (database + storage)
+supabase/   SQL migrations (schema + demo seed)
+```
 
 ---
 
-## In plain English: how it works
+## How it works
 
 1. **A student or faculty member posts a problem** (title, description, location, optional photo).
-2. **An "understanding engine" reads the problem** and decides its category (network, electrical, plumbing, etc.) and how urgent it is. It uses simple keyword rules first; if it's unsure and AI keys are configured, it asks an AI model for a second opinion. If AI is unavailable, it just uses the rules — the system never breaks because of AI.
-3. **The engine assigns the right worker** based on a category → worker mapping the Principal controls.
-4. **The worker sees the job** in their queue, accepts it, works on it, and marks it **completed** — uploading a photo as proof. The completion time is recorded.
-5. **A countdown timer runs** the whole time. The Principal sets how long a worker gets before the problem is considered overdue.
-6. **If the worker doesn't finish in time**, the problem **automatically escalates to the Head of Department (HOD)** of the relevant department. The HOD can see it, reassign it to another worker, or handle it.
-7. **If the HOD doesn't resolve it within their own time limit** (also set by the Principal), it **escalates again to the Principal**, who is the top of the chain and can see everything.
-8. **When a worker marks a problem fixed, the original person is asked to confirm.** If they say "yes", it closes. If they say "no", it reopens and goes back to the worker.
+2. **A rule-first classifier** decides the category (network, electrical, plumbing, etc.) and priority instantly. If the text is unclear and AI keys are configured, an AI model is asked for a second opinion. If AI is unavailable, the rules are enough — the workflow never breaks.
+3. **The right worker is assigned** using the category → worker mapping the Principal controls.
+4. **The worker sees the job**, accepts it, works on it, and marks it **completed** with optional photo proof.
+5. **An SLA countdown runs** for the whole job, using the windows the Principal configures.
+6. **If the worker misses the deadline**, the complaint **escalates automatically to the HOD**.
+7. **If the HOD misses theirs**, it **escalates to the Principal**.
+8. **The complainant verifies the fix.** “Yes” closes it; “No” reopens it and restarts the worker SLA.
 
-Every action is written to a timeline and an audit log, so there's a full history of who did what and when.
+Every action is written to the complaint timeline and to an immutable audit log.
 
 ---
 
-## The four portals (one app, role-based)
+## The four portals
 
 | Portal | Who logs in | What they do |
 |--------|-------------|--------------|
 | **User** (`/user`) | Students, Faculty | Post problems, track them, confirm or reopen fixes |
 | **Worker** (`/worker`) | Technicians | See assigned jobs, accept, work, mark completed with proof |
-| **HOD** (`/hod`) | Heads of Department | See their department's problems + escalations, reassign, escalate |
-| **Principal** (`/principal`) | Principal (main admin) | See everything, create HOD/Worker accounts, set the escalation timers, view analytics + audit log |
+| **HOD** (`/hod`) | Heads of Department | See their department’s problems and escalations, reassign, escalate |
+| **Principal** (`/principal`) | Principal (main admin) | See everything, create staff accounts, set timers and mappings, view analytics + audit |
 
-After login, each person is automatically sent to their own portal. They can't access portals that aren't theirs.
+After login each person is automatically sent to their own portal and cannot access another role’s portal.
 
 ---
 
-## Logins
+## Demo logins
 
-Grievia uses its **own username + password** system (stored securely in the database with bcrypt hashing). The **Principal is the main admin** and creates the HOD and Worker accounts from inside the Principal portal.
+Grievia uses its own **username + password** system (bcrypt-hashed in the database) and a signed **JWT session cookie** (`jose`). The Principal creates HOD and Worker accounts from inside the Principal portal.
 
-**Demo accounts** (all passwords are `sns`):
+All demo passwords are `sns`:
 
 | Username | Role |
 |----------|------|
@@ -49,101 +55,154 @@ Grievia uses its **own username + password** system (stored securely in the data
 | `worker.network` | Worker (network jobs) |
 | `worker.elec` | Worker (electrical jobs) |
 
-The Principal can add more HODs and Workers at **Principal portal → Staff**, choosing their username, password, role, and department.
-
----
-
-## What the Principal controls
-
-- **Staff** (`/principal/staff`): create HOD and Worker accounts (username + password + department).
-- **SLA & Config** (`/principal/config`):
-  - **Escalation timers** — for each priority (Critical / High / Medium / Low), set the **worker window** (time before it escalates to the HOD) and the **HOD window** (time before it escalates to the Principal).
-  - **Category → worker mapping** — decide which worker handles which category of problem.
-- **Complaints** (`/principal/complaints`): every complaint college-wide, plus the ones escalated to the Principal.
-- **Overview** (`/principal`): stats by department and category, average resolution time.
-- **Audit log** (`/principal/audit`): a record of every important action.
-
 ---
 
 ## Tech stack
 
-- **Next.js 14** (App Router) + **TypeScript** + **Tailwind CSS** — the whole app.
-- **Supabase Postgres** — the database (tables for users, complaints, history, notifications, audit, SLA config).
-- **Supabase Storage** — stores complaint photos and completion proofs (served via short-lived signed URLs).
-- **Custom auth** — username/password with **bcrypt** hashing and a signed **JWT session cookie** (`jose`).
-- **Rule engine + optional AI** — deterministic classification with a pluggable AI fallback (NVIDIA, Gemini, OpenRouter).
+**Frontend**
+- React 18 + TypeScript, built with Vite
+- React Router for the four role portals
+- Tailwind CSS with an amber / yellow / white design system
+- Lexend (display) + Source Sans 3 (body)
 
-> Note: Supabase is used only as the **database and file store**. Login is handled by Grievia itself, not Supabase Auth.
+**Backend**
+- Express 4 + TypeScript (ESM)
+- Supabase Postgres for data and Supabase Storage for photos/proofs
+- Custom auth with bcrypt + JWT httpOnly cookie
+- Rule-first classification with an optional AI fallback (NVIDIA, Gemini, OpenRouter)
+- Built-in SLA sweeper every 60 seconds, plus a protected `/api/cron/sla-check` endpoint
+
+Supabase is used only as the **database and file store**. Login is handled by Grievia itself, not Supabase Auth.
 
 ---
 
-## Running it locally
+## Running locally
 
-### 1. Install
+### 1. Install dependencies
 
 ```bash
-cd web
-npm install
+cd backend && npm install
+cd ../frontend && npm install
 ```
 
 ### 2. Configure environment
 
 ```bash
-cp .env.example .env.local
+cd backend
+cp .env.example .env
 ```
 
 Fill in:
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — from your Supabase project (Project Settings → API).
-- `SESSION_SECRET` — any long random string (signs the login cookie).
-- `CRON_SECRET` — any random string (protects the auto-escalation job).
+
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` — from Supabase → Project Settings → API.
+- `SESSION_SECRET` — any long random string (signs the session cookie).
+- `CRON_SECRET` — any random string (protects the cron endpoint).
 - AI keys are **optional** — leave blank to run rule-engine-only.
+
+The frontend needs no configuration for local development. In production, set `VITE_API_URL` to the deployed API URL:
+
+```bash
+cd frontend
+cp .env.example .env
+```
 
 ### 3. Set up the database
 
-The SQL migrations are in `web/supabase/migrations/`. Apply them to your Supabase project either with the Supabase CLI (`supabase db push`) or by pasting them into the SQL Editor in order:
-1. `0100_custom_auth.sql` — tables + custom-auth schema
-2. `0101_seed.sql` — departments, SLA defaults, and the demo accounts above
+Apply the SQL in `supabase/migrations/` to your Supabase project, in order:
 
-Then create a **private Storage bucket** named `complaints`.
+1. `0100_custom_auth.sql` — tables + custom-auth schema
+2. `0101_seed.sql` — departments, SLA defaults, and the demo accounts
+
+Use the Supabase CLI (`supabase db push`) or paste each file into the SQL Editor. Then create a **private Storage bucket** named `complaints`.
 
 ### 4. Run
 
+Backend (port 4000):
+
 ```bash
+cd backend
 npm run dev
 ```
 
-Open <http://localhost:3000> and sign in as `Principle` / `sns`.
+Frontend (port 5173, proxies `/api` to the backend):
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open <http://localhost:5173> and sign in as `Principle` / `sns`.
 
 ### Demo the escalation live
 
-Set `NEXT_PUBLIC_DEMO_MODE=true` in `.env.local` and restart — SLA windows shrink to 1–4 minutes so you can watch a complaint escalate worker → HOD → Principal in real time. The escalation check runs at `/api/cron/sla-check` (call it manually with `Authorization: Bearer <CRON_SECRET>`, or let Vercel Cron run it every minute — see `vercel.json`).
+Set `DEMO_MODE=true` in `backend/.env` and restart. SLA windows shrink to 1–4 minutes so you can watch a complaint escalate worker → HOD → Principal in real time. You can also force a sweep from **Principal portal → Overview → Run SLA escalation check**, or call:
+
+```bash
+curl -X POST http://localhost:4000/api/cron/sla-check \
+  -H "Authorization: Bearer <CRON_SECRET>"
+```
 
 ---
 
-## Deploying to Vercel
+## Production build
 
-1. Push this repo to GitHub (already at `Sanjay767676/GREVIA`).
-2. In Vercel, import the repo and set the **root directory to `web`**.
-3. Add all the environment variables from your `.env.local` in the Vercel project settings.
-4. Deploy. `web/vercel.json` registers the auto-escalation cron.
+```bash
+cd backend && npm run build && npm start
+cd frontend && npm run build   # serves ./frontend/dist
+```
+
+Host `frontend/dist` on any static host and point `VITE_API_URL` at the Express API. Because the SPA uses client-side routing, configure the host to rewrite unknown paths to `index.html` (a “history fallback”), otherwise refreshing a URL like `/principal/config` returns a 404. When frontend and backend are on different sites, set:
+
+- `COOKIE_SAMESITE=none`
+- `COOKIE_SECURE=true`
+- `CORS_ORIGINS=https://your-frontend.example.com`
+
+---
+
+## API overview
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/api/auth/login` | Sign in, set session cookie |
+| POST | `/api/auth/logout` | Clear session |
+| GET | `/api/auth/me` | Current session |
+| GET/POST | `/api/complaints` | List visible complaints / create one |
+| GET | `/api/complaints/:id` | Detail + history + signed image/proof URLs |
+| POST | `/api/complaints/:id/status` | Worker accept / start / resolve |
+| POST | `/api/complaints/:id/verify` | Complainant close or reopen |
+| POST | `/api/complaints/:id/reassign` | HOD/Principal reassign worker |
+| POST | `/api/complaints/:id/escalate` | Manual escalation |
+| GET/POST/PATCH | `/api/admin/users` | Staff accounts |
+| GET/PATCH | `/api/admin/sla` | SLA windows per priority |
+| GET/PUT | `/api/admin/assignments` | Category → worker mappings |
+| POST | `/api/admin/run-escalation` | Run the SLA sweep now |
+| GET | `/api/admin/audit` | Audit log |
+| GET | `/api/staff`, `/api/departments` | Reference data |
+| GET/PATCH | `/api/notifications` | Notifications |
+| POST | `/api/upload` | Upload a photo to Supabase Storage |
+| GET/POST | `/api/cron/sla-check` | Protected scheduled sweep |
 
 ---
 
 ## Project layout
 
 ```
-web/
-├── src/
-│   ├── app/
-│   │   ├── api/            # login, complaints, notifications, admin, upload, cron
-│   │   ├── user/  worker/  hod/  principal/   # the four role portals
-│   │   └── login/  page.tsx                    # login + landing
-│   ├── components/         # shared UI (tables, badges, detail, shell, logo…)
-│   └── lib/
-│       ├── engines/        # classifier, assignment, SLA, escalation
-│       ├── ai/             # optional AI classifier + providers
-│       ├── session.ts      # JWT session cookie
-│       ├── auth.ts / api-auth.ts   # role gating
-│       └── db.ts           # database access
-└── supabase/migrations/    # database schema + seed
+backend/
+└── src/
+    ├── config/        # environment
+    ├── domain/        # roles, statuses, categories, types
+    ├── lib/           # db, errors, session, auth
+    ├── routes/        # auth, complaints, admin, directory, notifications, upload, cron
+    ├── services/      # sla, assignment, classifier, escalation, events, sweeper, AI
+    ├── app.ts         # Express app
+    └── index.ts       # server + built-in SLA sweeper
+
+frontend/
+└── src/
+    ├── components/    # shell, nav, tables, badges, timeline, detail…
+    ├── lib/           # api client, auth context, constants, types, helpers
+    └── pages/         # home, login, user/, worker/, hod/, principal/
+
+supabase/
+└── migrations/        # schema + demo seed
 ```
