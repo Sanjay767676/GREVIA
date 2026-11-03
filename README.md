@@ -183,7 +183,7 @@ Blueprint (uses `render.yaml`):
 Manual web service (same result):
 
 - Root Directory: `backend`
-- Build Command: `npm ci && npm run build`
+- Build Command: `npm ci --include=dev && npm run build`
 - Start Command: `npm start`
 - Health Check Path: `/api/health`
 

@@ -9,7 +9,9 @@ services:
     runtime: node
     plan: free
     rootDir: backend
-    buildCommand: npm ci && npm run build
+    # NODE_ENV=production makes npm skip devDependencies, but the build needs
+    # TypeScript (a devDependency). --include=dev keeps tsc available.
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
