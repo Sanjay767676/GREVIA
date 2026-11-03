@@ -159,6 +159,87 @@ Host `frontend/dist` on any static host and point `VITE_API_URL` at the Express 
 
 ---
 
+## Deploy (Render + Vercel)
+
+The repo ships with `render.yaml` (API Blueprint) and `frontend/vercel.json` (SPA rewrites).
+
+### 1. Database - Supabase (once)
+
+1. Create a project at supabase.com.
+2. SQL Editor: run `supabase/migrations/0100_custom_auth.sql`, then `0101_seed.sql`.
+3. Storage: create a **private** bucket named `complaints`. No policies are needed - the API uses the service-role key.
+4. Copy the Project URL and `service_role` key from Project Settings -> API.
+
+### 2. Backend - Render
+
+Blueprint (uses `render.yaml`):
+
+1. Push this repo to GitHub.
+2. Render dashboard -> New -> Blueprint -> select the repo.
+3. Enter `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` when prompted.
+4. Deploy, then copy the service URL (for example `https://grievia-api.onrender.com`).
+5. Set `CORS_ORIGINS` to the Vercel URL from step 3, then redeploy.
+
+Manual web service (same result):
+
+- Root Directory: `backend`
+- Build Command: `npm ci && npm run build`
+- Start Command: `npm start`
+- Health Check Path: `/api/health`
+
+Add the variables from `backend/.env.example` in the dashboard. Do **not** set `PORT`; Render injects it.
+
+Confirm `https://<service>.onrender.com/api/health` returns `{"ok":true,...}`.
+
+### 3. Frontend - Vercel
+
+1. Vercel -> Add New -> Project -> import the repo.
+2. Root Directory: `frontend` (Framework preset: Vite).
+3. Environment Variable: `VITE_API_URL=https://grievia-api.onrender.com` for Production (add Preview too if you use it).
+4. Deploy.
+5. Copy the Vercel URL, set it as `CORS_ORIGINS` on Render, and redeploy the API.
+
+`VITE_API_URL` is baked in at build time, so changing it requires a new Vercel deployment.
+
+### 4. Keep escalations running
+
+The API checks SLAs every 60 seconds while awake and also exposes `POST /api/cron/sla-check` for external schedulers. Render's free plan sleeps after about 15 minutes idle, which pauses the built-in check. Either:
+
+- Create a free cron at cron-job.org (or GitHub Actions) that calls
+  `POST https://<service>.onrender.com/api/cron/sla-check` every 10 minutes with the header
+  `Authorization: Bearer <CRON_SECRET>` (this also wakes the service), or
+- Upgrade the Render service so it stays awake.
+
+### 5. Before going live
+
+- Change the seeded demo passwords. In `backend/`, generate a hash:
+
+  ```bash
+  node -e "import('bcryptjs').then(b=>b.default.hash('NEW_PASSWORD',10).then(console.log))"
+  ```
+
+  Then run in the Supabase SQL Editor:
+
+  ```sql
+  update app_users set password_hash = '<hash>' where username = 'Principle';
+  ```
+
+  Repeat for `student`, `faculty`, `hod.cse`, `worker.network`, `worker.elec`, or create real accounts in the Principal portal and remove the demo ones.
+- Keep `DEMO_MODE=false` so SLA windows are the real 4h / 12h / 24h / 48h.
+- Never commit `SUPABASE_SERVICE_ROLE_KEY`, `SESSION_SECRET`, or `CRON_SECRET`.
+
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Login succeeds, then requests return 401 | Cookie blocked or cross-site | Set `COOKIE_SAMESITE=none`, `COOKIE_SECURE=true`, and make `CORS_ORIGINS` the exact https frontend origin (no trailing slash) |
+| CORS error in the browser console | Frontend origin missing from `CORS_ORIGINS` | Add it and redeploy the API |
+| Refreshing `/principal/config` gives 404 | SPA rewrite missing | Keep `frontend/vercel.json`, set the Vercel Root Directory to `frontend` |
+| Uploads fail | Bucket missing | Create the private `complaints` bucket |
+| API calls hit the wrong host | `VITE_API_URL` wrong | Use the API origin only, with no `/api` suffix |
+
+---
+
 ## API overview
 
 | Method | Path | Purpose |
